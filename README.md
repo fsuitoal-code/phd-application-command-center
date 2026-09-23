@@ -75,7 +75,7 @@ Then, on **macOS / Linux**:
 ```bash
 .venv/bin/python -m pip install -e .
 .venv/bin/python -m app.init_data_dir     # creates the data folder, once
-.venv/bin/alembic upgrade head            # creates the database
+.venv/bin/python -m app.migrate           # creates the database
 ```
 
 On **Windows**:
@@ -83,7 +83,7 @@ On **Windows**:
 ```bash
 .venv\Scripts\python -m pip install -e .
 .venv\Scripts\python -m app.init_data_dir
-.venv\Scripts\alembic upgrade head
+.venv\Scripts\python -m app.migrate
 ```
 
 The app never creates a data folder by itself. If it can't find a database
@@ -97,7 +97,12 @@ small request on your account.
 
 ## Running
 
-From `backend/`:
+On **macOS**, double-click **`Open PhD Tracker.command`** in the project
+folder. It brings the database up to date, starts the app and opens it in your
+browser. The Terminal window it opens *is* the app: keep it open while you use
+PhD Tracker, and close it to quit.
+
+Otherwise, from `backend/`:
 
 ```bash
 .venv/bin/python -m uvicorn app.main:app --port 8000      # macOS / Linux
@@ -109,17 +114,21 @@ Node isn't needed to run it.
 
 ## Updating
 
+On **macOS**, close PhD Tracker and double-click **`Update PhD Tracker.command`**.
+
+Otherwise:
+
 ```bash
 git pull
 cd backend
 .venv/bin/python -m pip install -e .
-.venv/bin/python -m app.backup      # snapshot the database first
-.venv/bin/alembic upgrade head
+.venv/bin/python -m app.migrate
 ```
 
-Migrations only move forward. `app.backup` writes a consistent snapshot of
-your database to the `backups/` folder inside your data folder before
-anything changes.
+Migrations only move forward. When the database needs changing, `app.migrate`
+first writes a consistent snapshot of it to the `backups/` folder inside your
+data folder. If that snapshot fails, nothing is changed. When the database is
+already up to date, it touches nothing.
 
 ## Development
 

@@ -26,12 +26,10 @@ os.environ["PHDTRACKER_INIT"] = "1"
 
 def _run_migrations() -> None:
     from alembic import command
-    from alembic.config import Config
 
-    backend_dir = Path(__file__).resolve().parents[1]
-    cfg = Config(str(backend_dir / "alembic.ini"))
-    cfg.set_main_option("script_location", str(backend_dir / "alembic"))
-    command.upgrade(cfg, "head")
+    from app.migrate import alembic_config
+
+    command.upgrade(alembic_config(), "head")
 
 
 @pytest.fixture(scope="session", autouse=True)
