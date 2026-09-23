@@ -12,6 +12,10 @@
 #
 # Safe to run again: every step checks before it acts. Your data is only ever
 # touched to bring the database up to date, and that takes a backup first.
+#
+# The screen shows one line per step. Everything the steps themselves print
+# goes to a log in ~/Library/Logs/PhDTracker/, and a failed step shows its last
+# lines on screen.
 
 REPO_URL="https://github.com/fsuitoal-code/phd-application-command-center.git"
 REPO_PATH="fsuitoal-code/phd-application-command-center"
@@ -19,15 +23,30 @@ APP_DIR="$HOME/PhDTracker"
 DATA_DIR="$HOME/Library/Application Support/PhDTracker"
 LOG_DIR="$HOME/Library/Logs/PhDTracker"
 
-say()  { printf '%s\n' "$*"; }
-step() { printf '\n==> %s\n' "$*"; }
-ok()   { printf '    %s\n' "$*"; }
-warn() { printf '    WARNING: %s\n' "$*"; }
+say()   { printf '%s\n' "$*"; }
+ok()    { printf '  ✓  %s\n' "$*"; }
+doing() { printf '  …  %s\n' "$*"; }
+note()  { printf '     %s\n' "$*"; }
+warn()  { printf '  !  %s\n' "$*"; }
 
 fail() {
-  printf '\nSetup stopped: %s\n' "$*"
-  printf '\nIf you are stuck, send this file to whoever is helping you:\n  %s\n' "$LOG"
+  # fail <message> [show-log] -- stops the setup. With a second argument, the
+  # last lines of the log (the failed step's own output) are shown as well.
+  local recent=""
+  [ -n "${2:-}" ] && recent="$(tail -n 12 "$LOG")"
+  printf '  ✗  %s\n' "$1"
+  if [ -n "$recent" ]; then
+    printf '\n     The last lines of the setup log:\n'
+    printf '%s\n' "$recent" | sed 's/^/       /'
+  fi
+  printf '\n     Setup stopped. If you are stuck, send this file to whoever is helping you:\n'
+  printf '       %s\n' "$LOG"
   exit 1
+}
+
+quietly() {
+  # quietly <command...> -- runs it with its output going to the log only.
+  "$@" >>"$LOG" 2>&1
 }
 
 ask() {
@@ -92,53 +111,43 @@ main() {
   exec > >(tee -a "$LOG") 2>&1
 
   printf '\033]0;PhD Tracker setup\007'
+  say ""
   say "PhD Tracker setup"
   say ""
-  say "This will:"
-  say "  - install Apple's command line tools, if they're missing"
-  say "  - download PhD Tracker to $APP_DIR"
-  say "  - set up its Python environment"
-  say "  - create your data folder: $DATA_DIR"
-  say "  - sign you in to Claude, for the research features"
+  say "This takes a few minutes. Near the end you'll sign in to Claude in your browser."
   say ""
-  say "It's safe to run again. Your data is only touched to bring the database"
-  say "up to date, and that takes a backup first."
+  ask "Press Return to start. "
   say ""
-  ask "Press Return to start, or close this window to cancel. "
 
   # ── 1. Apple command line tools (git) ────────────────────────────────────
-  step "Apple command line tools"
-  if xcode-select -p >/dev/null 2>&1; then
-    ok "Already installed."
-  else
+  if ! xcode-select -p >/dev/null 2>&1; then
     xcode-select --install >/dev/null 2>&1
-    ok "A window has opened asking to install the command line developer tools."
-    ok "Click Install, agree to the licence, and wait for it to finish."
-    ok "This can take 10-20 minutes; setup carries on by itself afterwards."
-    ok "(If you clicked Not Now, close this window and run the setup line again.)"
+    doing "Installing Apple's command line tools"
+    note "A window has opened: click Install, then Agree, and wait for it to finish."
+    note "This can take 10-20 minutes. Setup carries on by itself afterwards."
+    note "(If you clicked Not Now, close this window and run the setup line again.)"
     local waited=0
     until xcode-select -p >/dev/null 2>&1; do
       sleep 10
       waited=$((waited + 10))
       if [ $((waited % 60)) -eq 0 ]; then
-        ok "Still waiting... ($((waited / 60)) min)"
+        note "still waiting ($((waited / 60)) min)"
       fi
       if [ "$waited" -ge 3600 ]; then
-        fail "the command line tools didn't finish installing within an hour. Once they're installed, run the setup line again."
+        fail "Apple's command line tools didn't finish installing within an hour. Once they have, run the setup line again."
       fi
     done
-    ok "Installed."
   fi
-  git --version >/dev/null 2>&1 || fail "git isn't working, even though the command line tools are installed."
+  git --version >/dev/null 2>&1 || fail "git isn't working, even though Apple's command line tools are installed."
+  ok "Apple command line tools"
 
   # ── 2. Python 3.12+ ──────────────────────────────────────────────────────
-  step "Python"
   local py
-  py="$(find_python)" || fail "no Python 3.12 or newer found. Install Python from python.org (3.12 or newer), then run the setup line again."
-  ok "Using $py (Python $("$py" -c 'import platform; print(platform.python_version())'))."
+  py="$(find_python)" || fail "No Python 3.12 or newer found. Install Python from python.org (3.12 or newer), then run the setup line again."
+  printf 'Using %s\n' "$py" >>"$LOG"
+  ok "Python $("$py" -c 'import platform; print(platform.python_version())')"
 
   # ── 3. The app itself ────────────────────────────────────────────────────
-  step "Download PhD Tracker"
   if [ -d "$APP_DIR/.git" ]; then
     local origin
     origin="$(git -C "$APP_DIR" remote get-url origin 2>/dev/null)"
@@ -146,83 +155,80 @@ main() {
       *"$REPO_PATH"|*"$REPO_PATH.git"|*"$REPO_PATH/") ;;
       *) fail "$APP_DIR already exists but isn't PhD Tracker. Rename or move that folder, then run the setup line again." ;;
     esac
-    git -C "$APP_DIR" pull --ff-only \
-      || fail "couldn't update the existing copy in $APP_DIR (see the messages above)."
-    ok "Updated the existing copy in $APP_DIR."
+    quietly git -C "$APP_DIR" pull --ff-only \
+      || fail "Couldn't update the copy of PhD Tracker in $APP_DIR." show-log
+    ok "PhD Tracker is up to date"
   elif [ -e "$APP_DIR" ]; then
     fail "$APP_DIR already exists but isn't PhD Tracker. Rename or move it, then run the setup line again."
   else
-    git clone --quiet "$REPO_URL" "$APP_DIR" \
-      || fail "couldn't download PhD Tracker. Check your internet connection and run the setup line again."
-    ok "Downloaded to $APP_DIR."
+    quietly git clone "$REPO_URL" "$APP_DIR" \
+      || fail "Couldn't download PhD Tracker. Check your internet connection and run the setup line again." show-log
+    ok "Downloaded PhD Tracker"
   fi
 
   # ── 4. Python environment ────────────────────────────────────────────────
-  step "Python environment"
   local venv="$APP_DIR/backend/.venv"
   local venv_py="$venv/bin/python"
-  if [ -x "$venv_py" ] && py_version_ok "$venv_py" >/dev/null; then
-    ok "Already set up."
-  else
+  if ! { [ -x "$venv_py" ] && py_version_ok "$venv_py" >/dev/null; }; then
     # Missing or broken (e.g. made by a Python that has since been removed). It
     # holds no data of yours, so it is simply rebuilt.
     rm -rf "$venv"
-    "$py" -m venv "$venv" || fail "couldn't create the Python environment."
-    ok "Created."
+    quietly "$py" -m venv "$venv" || fail "Couldn't create PhD Tracker's Python environment." show-log
   fi
-  ok "Installing the app's components (this can take a few minutes)..."
-  (cd "$APP_DIR/backend" && "$venv_py" -m pip install --quiet --disable-pip-version-check -e .) \
-    || fail "couldn't install the app's components. Check your internet connection and run the setup line again."
-  ok "Components installed."
+  doing "Installing PhD Tracker's components (this takes a few minutes)"
+  (cd "$APP_DIR/backend" && quietly "$venv_py" -m pip install --disable-pip-version-check -e .) \
+    || fail "Couldn't install PhD Tracker's components. Check your internet connection and run the setup line again." show-log
+  ok "Installed PhD Tracker's components"
 
   # ── 5. Data folder and database ──────────────────────────────────────────
-  step "Your data folder"
-  (cd "$APP_DIR/backend" && "$venv_py" -m app.init_data_dir) || fail "couldn't create the data folder."
-  (cd "$APP_DIR/backend" && "$venv_py" -m app.migrate)
+  local had_db=0
+  [ -f "$DATA_DIR/phdtracker.sqlite3" ] && had_db=1
+  (cd "$APP_DIR/backend" && quietly "$venv_py" -m app.init_data_dir) \
+    || fail "Couldn't create your data folder." show-log
+  (cd "$APP_DIR/backend" && quietly "$venv_py" -m app.migrate)
   case $? in
     0) ;;
-    3) fail "your data was last used by a newer version of PhD Tracker. Nothing was changed." ;;
-    *) fail "couldn't set up the database (see the messages above)." ;;
+    3) fail "Your data was last used by a newer version of PhD Tracker. Nothing was changed." show-log ;;
+    *) fail "Couldn't set up your database." show-log ;;
   esac
+  if [ "$had_db" -eq 1 ]; then
+    ok "Your data is kept and up to date"
+  else
+    ok "Created your database"
+  fi
 
   # ── 6. Claude sign-in ────────────────────────────────────────────────────
-  step "Sign in to Claude"
   # The app uses the Claude tool bundled with its SDK, so that is the one to
   # sign in with. A subscription sign-in, never API billing.
   local cli
   cli="$("$venv_py" -c 'import pathlib, claude_agent_sdk as s; p = pathlib.Path(s.__file__).parent / "_bundled" / "claude"; print(p if p.is_file() else "")' 2>/dev/null)"
   [ -n "$cli" ] || cli="$(command -v claude 2>/dev/null)"
-  local signed_in=0
   if [ -z "$cli" ]; then
-    warn "couldn't find the Claude sign-in tool, so research won't work yet. Everything else will."
+    warn "Couldn't find the Claude sign-in tool. Research won't work yet; everything else will."
   elif "$cli" auth status >/dev/null 2>&1; then
-    ok "Already signed in."
-    signed_in=1
+    ok "Signed in to Claude"
   else
-    ok "PhD Tracker's research features run on your own Claude account."
-    ok "Your browser will open: sign in with the account that has your Claude subscription."
-    ask "    Press Return to continue. "
+    say ""
+    say "  Next, sign in to Claude. Your browser will open: use the account that has"
+    say "  your Claude subscription. PhD Tracker's research runs on that account."
+    ask "  Press Return to continue. "
     sign_in "$cli"
+    say ""
     if "$cli" auth status >/dev/null 2>&1; then
-      ok "Signed in."
-      signed_in=1
+      ok "Signed in to Claude"
     else
-      warn "not signed in, so research won't work yet. Everything else will. Run the setup line again to retry."
+      warn "Not signed in to Claude. Research won't work until you are; everything else will."
+      note "To try again, run the setup line again."
     fi
   fi
 
   # ── Done ─────────────────────────────────────────────────────────────────
-  step "Done"
-  say "PhD Tracker is set up."
-  say "  App:  $APP_DIR"
-  say "  Data: $DATA_DIR"
-  [ "$signed_in" -eq 1 ] || say "  Claude: not signed in yet (research won't work until you are)"
   say ""
-  say "In the folder that just opened, double-click 'Open PhD Tracker' to start it,"
-  say "and 'Update PhD Tracker' to get new versions."
+  say "All set. PhD Tracker is in the folder that just opened:"
+  say "  double-click \"Open PhD Tracker\" to start it, and"
+  say "  \"Update PhD Tracker\" to get new versions."
   say ""
-  say "A copy of this setup's output is saved in:"
-  say "  $LOG"
+  say "(A record of this setup is in ~/Library/Logs/PhDTracker.)"
   open "$APP_DIR"
   say ""
   ask "Open PhD Tracker now? [Y/n] "
