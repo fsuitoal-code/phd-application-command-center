@@ -64,6 +64,13 @@ The rules the code is built to are in [docs/principles.md](docs/principles.md).
 
 ## Setup
 
+On **macOS**, with Python 3.12 or newer already installed, `setup-mac.sh` does
+all of the steps below, including the Claude sign-in. How to run it is in the
+comment at the top of the file. It puts the app in `~/PhDTracker`, and it's
+safe to run again.
+
+By hand:
+
 ```bash
 git clone https://github.com/fsuitoal-code/phd-application-command-center.git
 cd phd-application-command-center/backend
@@ -91,7 +98,8 @@ where it expects one, it stops with an error naming the path, instead of
 opening an empty app that looks as if your data vanished. `init_data_dir` is
 the one deliberate way to create one.
 
-To use the research features, sign in once with `claude /login`. You can then
+To use the research features, sign in once with `claude auth login`, using
+the account that has your Claude subscription. You can then
 check the connection with `python scripts/verify_sdk.py`. That makes one
 small request on your account.
 

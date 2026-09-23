@@ -7,8 +7,8 @@ database here is what I want" -- run once during setup:
 
     python -m app.init_data_dir
 
-It only prepares the directory. The database itself is created by the usual
-``alembic upgrade head``, which the launcher runs next.
+It only prepares the directory. The database itself is created by
+``python -m app.migrate``, which setup and the launchers run next.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def main() -> int:
     if db.exists():
         print(f"Existing database kept: {db}")
     else:
-        print("No database yet - run 'alembic upgrade head' to create one.")
+        print("No database yet - 'python -m app.migrate' creates one.")
     return 0
 
 
