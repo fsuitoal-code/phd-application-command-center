@@ -65,9 +65,9 @@ The rules the code is built to are in [docs/principles.md](docs/principles.md).
 ## Setup
 
 On **macOS**, with Python 3.12 or newer already installed, `setup-mac.sh` does
-all of the steps below, including the Claude sign-in. How to run it is in the
-comment at the top of the file. It puts the app in `~/PhDTracker`, and it's
-safe to run again.
+all of the steps below, including the Claude sign-in, and adds "Open" and
+"Update" shortcuts to the Desktop. How to run it is in the comment at the top
+of the file. It puts the app in `~/PhDTracker`, and it's safe to run again.
 
 By hand:
 

@@ -71,6 +71,67 @@ sign_in() {
   fi
 }
 
+build_icns() {
+  # build_icns <square.png> <out.icns> -- a full set of macOS icon sizes from
+  # one PNG, with the tools every Mac has (sips, iconutil).
+  local set size
+  set="$(dirname "$2")/AppIcon.iconset"
+  mkdir -p "$set" || return 1
+  for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" "$1" --out "$set/icon_${size}x${size}.png" || return 1
+    sips -z $((size * 2)) $((size * 2)) "$1" --out "$set/icon_${size}x${size}@2x.png" || return 1
+  done
+  iconutil -c icns "$set" -o "$2"
+}
+
+make_shortcut() {
+  # make_shortcut <name> <launcher.command> [icon.icns] -- a small app on the
+  # Desktop that opens the launcher in Terminal. It is an app rather than an
+  # alias so it can carry its own icon, which updates to the launcher (a
+  # replaced file) would otherwise strip. Only ever replaces a shortcut this
+  # setup made, recognised by its bundle identifier.
+  local name="$1" target="$2" icns="${3:-}"
+  local app="$HOME/Desktop/$name.app"
+  local id
+  id="local.phdtracker.$(printf '%s' "$name" | tr 'A-Z ' 'a-z-')"
+  if [ -e "$app" ] && ! grep -q "<string>$id</string>" "$app/Contents/Info.plist" 2>/dev/null; then
+    return 1
+  fi
+  rm -rf "$app"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" || return 1
+  cat >"$app/Contents/Info.plist" <<EOF || return 1
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>$name</string>
+  <key>CFBundleDisplayName</key><string>$name</string>
+  <key>CFBundleIdentifier</key><string>$id</string>
+  <key>CFBundleExecutable</key><string>launch</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>LSUIElement</key><true/>
+</dict>
+</plist>
+EOF
+  cat >"$app/Contents/MacOS/launch" <<EOF || return 1
+#!/bin/bash
+# Opens PhD Tracker's "$name" launcher in Terminal. Made by PhD Tracker's setup.
+target="$target"
+if [ -e "\$target" ]; then
+  exec /usr/bin/open "\$target"
+fi
+/usr/bin/osascript -e 'display alert "PhD Tracker" message "PhD Tracker is no longer in its usual folder. Run the setup line again to repair this shortcut." as critical' >/dev/null 2>&1
+EOF
+  chmod +x "$app/Contents/MacOS/launch" || return 1
+  if [ -n "$icns" ]; then
+    cp "$icns" "$app/Contents/Resources/AppIcon.icns" || return 1
+  fi
+  touch "$app"
+}
+
 py_version_ok() {
   # Prints "MAJOR MINOR" if $1 is a working Python 3.12 or newer; fails otherwise.
   "$1" -c 'import sys; v = sys.version_info; print(v[0], v[1]) if v >= (3, 12) else sys.exit(1)' 2>/dev/null
@@ -197,7 +258,27 @@ main() {
     ok "Created your database"
   fi
 
-  # ── 6. Claude sign-in ────────────────────────────────────────────────────
+  # ── 6. Desktop shortcuts ─────────────────────────────────────────────────
+  # The first write to the Desktop makes macOS ask whether Terminal may access
+  # it, so say so first.
+  doing "Adding shortcuts to your Desktop (if macOS asks about your Desktop, click Allow)"
+  local tmp icns="" shortcuts=0
+  tmp="$(mktemp -d 2>/dev/null)"
+  if [ -n "$tmp" ] && quietly build_icns "$APP_DIR/frontend/public/logo-512.png" "$tmp/AppIcon.icns"; then
+    icns="$tmp/AppIcon.icns"
+  else
+    printf 'Could not build the shortcut icon; the shortcuts get the default one.\n' >>"$LOG"
+  fi
+  if make_shortcut "Open PhD Tracker" "$APP_DIR/Open PhD Tracker.command" "$icns" \
+     && make_shortcut "Update PhD Tracker" "$APP_DIR/Update PhD Tracker.command" "$icns"; then
+    ok "Shortcuts on your Desktop"
+    shortcuts=1
+  else
+    warn "Couldn't add the Desktop shortcuts. The Open and Update launchers are in the PhDTracker folder instead."
+  fi
+  [ -n "$tmp" ] && rm -rf "$tmp"
+
+  # ── 7. Claude sign-in ────────────────────────────────────────────────────
   # The app uses the Claude tool bundled with its SDK, so that is the one to
   # sign in with. A subscription sign-in, never API billing.
   local cli
@@ -224,12 +305,17 @@ main() {
 
   # ── Done ─────────────────────────────────────────────────────────────────
   say ""
-  say "All set. PhD Tracker is in the folder that just opened:"
-  say "  double-click \"Open PhD Tracker\" to start it, and"
-  say "  \"Update PhD Tracker\" to get new versions."
+  if [ "$shortcuts" -eq 1 ]; then
+    say "All set. Use the two new icons on your Desktop:"
+    say "  \"Open PhD Tracker\" starts it, and \"Update PhD Tracker\" gets new versions."
+  else
+    say "All set. PhD Tracker is in the folder that just opened:"
+    say "  double-click \"Open PhD Tracker\" to start it, and"
+    say "  \"Update PhD Tracker\" to get new versions."
+    open "$APP_DIR"
+  fi
   say ""
   say "(A record of this setup is in ~/Library/Logs/PhDTracker.)"
-  open "$APP_DIR"
   say ""
   ask "Open PhD Tracker now? [Y/n] "
   case "$ANSWER" in
