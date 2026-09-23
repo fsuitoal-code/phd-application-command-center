@@ -36,6 +36,22 @@ ask() {
   read -r -p "$1" ANSWER </dev/tty || ANSWER=""
 }
 
+sign_in() {
+  # sign_in <claude-cli> -- runs the interactive sign-in on the real terminal.
+  # The CLI is built on Bun, which watches its input with kqueue, and macOS
+  # kqueue rejects anything opened through the /dev/tty alias (EINVAL). So it
+  # gets the terminal's own device: the inherited input when that is the
+  # terminal, otherwise the device path of this process's controlling terminal.
+  if [ -t 0 ]; then
+    "$1" auth login >&3 2>&4
+  else
+    local dev
+    dev="/dev/$(ps -o tty= -p $$ | tr -d ' ')"
+    [ -c "$dev" ] || return 1
+    "$1" auth login <"$dev" >&3 2>&4
+  fi
+}
+
 py_version_ok() {
   # Prints "MAJOR MINOR" if $1 is a working Python 3.12 or newer; fails otherwise.
   "$1" -c 'import sys; v = sys.version_info; print(v[0], v[1]) if v >= (3, 12) else sys.exit(1)' 2>/dev/null
@@ -186,7 +202,7 @@ main() {
     ok "PhD Tracker's research features run on your own Claude account."
     ok "Your browser will open: sign in with the account that has your Claude subscription."
     ask "    Press Return to continue. "
-    "$cli" auth login </dev/tty >&3 2>&4
+    sign_in "$cli"
     if "$cli" auth status >/dev/null 2>&1; then
       ok "Signed in."
       signed_in=1
