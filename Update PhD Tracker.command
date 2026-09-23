@@ -11,10 +11,14 @@
 
 main() {
   cd "$(dirname "$0")" || exit 1
-  local root py url old new
+  local root py url old new uid port
   root="$(pwd)"
   py="$root/backend/.venv/bin/python"
-  url="http://127.0.0.1:8000"
+  # This Mac account's own port, as in the Open launcher: every account shares
+  # 127.0.0.1, and another account's running app must not block this update.
+  uid="$(id -u)"
+  if [ "$uid" -gt 500 ]; then port=$((8000 + (uid - 500) % 1000)); else port=8000; fi
+  url="http://127.0.0.1:$port"
 
   printf '\033]0;PhD Tracker - Update\007'
 
