@@ -147,7 +147,7 @@ def _fake_dossier():
 def test_research_stores_dossier_and_provenance(client, monkeypatch):
     prog, fac = _setup(client)
 
-    async def fake(profile, faculty, program):
+    async def fake(faculty, program):
         return _fake_dossier()
 
     monkeypatch.setattr("app.claude.faculty_dossier.research_faculty", fake)
@@ -170,7 +170,7 @@ def test_research_does_not_overwrite_what_the_user_typed(client, monkeypatch):
         json={"name": "Prof Y", "research_areas": "mine, hand-written"},
     ).json()
 
-    async def fake(profile, faculty, program):
+    async def fake(faculty, program):
         return _fake_dossier()
 
     monkeypatch.setattr("app.claude.faculty_dossier.research_faculty", fake)
@@ -181,10 +181,10 @@ def test_research_does_not_overwrite_what_the_user_typed(client, monkeypatch):
 def test_research_keeps_an_earlier_dossier_when_nothing_is_citable(client, monkeypatch):
     prog, fac = _setup(client)
 
-    async def good(profile, faculty, program):
+    async def good(faculty, program):
         return _fake_dossier()
 
-    async def empty(profile, faculty, program):
+    async def empty(faculty, program):
         return FacultyDossier(sections=[])
 
     monkeypatch.setattr("app.claude.faculty_dossier.research_faculty", good)
@@ -200,18 +200,3 @@ def test_research_keeps_an_earlier_dossier_when_nothing_is_citable(client, monke
 
 def test_research_404_missing_faculty(client):
     assert client.post("/api/faculty/99999/research").status_code == 404
-
-
-def test_research_needs_no_profile(client, monkeypatch):
-    """A dossier is about the faculty member, so an empty profile is no bar.
-
-    Demanding one would mean you cannot read about anyone until you have
-    written about yourself, which is the wrong way round.
-    """
-    prog, fac = _setup(client)
-
-    async def fake(profile, faculty, program):
-        return _fake_dossier()
-
-    monkeypatch.setattr("app.claude.faculty_dossier.research_faculty", fake)
-    assert client.post(f"/api/faculty/{fac['id']}/research").status_code == 200

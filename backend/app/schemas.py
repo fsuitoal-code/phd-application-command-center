@@ -454,30 +454,6 @@ class ResearchRequest(BaseModel):
     )
 
 
-
-
-# ── Applicant profile ───────────────────────────────────────────────────
-class ProfileOut(_ORM):
-    id: int
-    target_degree: str | None
-    research_interests: str | None
-    keywords: str | None
-    background_summary: str | None
-    funding_needs: str | None
-    test_status: str | None
-    cv_emphasis_rules: str | None
-
-
-class ProfileUpdate(BaseModel):
-    target_degree: str | None = None
-    research_interests: str | None = None
-    keywords: str | None = None
-    background_summary: str | None = None
-    funding_needs: str | None = None
-    test_status: str | None = None
-    cv_emphasis_rules: str | None = None
-
-
 # ── Faculty actions ─────────────────────────────────────────────────────
 class SuggestedFacultyOut(BaseModel):
     name: str

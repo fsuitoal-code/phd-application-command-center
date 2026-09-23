@@ -53,7 +53,7 @@ def test_ensure_application_deadline_on_an_empty_program():
 def test_research_pass_writes_deadlines_as_researched(client, monkeypatch):
     from app.claude.research import ResearchedDeadline, ResearchedProgram
 
-    async def fake_research(query, official_url, interests):
+    async def fake_research(query, official_url):
         return ResearchedProgram(
             university="Anywhere U",
             deadlines=[ResearchedDeadline(type="funding", date="2099-01-01")],

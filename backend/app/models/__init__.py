@@ -7,7 +7,6 @@ on ``app.db.Base.metadata`` — needed by Alembic autogenerate and by
 
 from __future__ import annotations
 
-from app.models.applicant_profile import ApplicantProfile
 from app.models.deadline import Deadline
 from app.models.doc_file import DocFile
 from app.models.doc_type import DocType
@@ -28,7 +27,6 @@ from app.models.program_step import ProgramStep
 from app.models.requirement import Requirement
 
 __all__ = [
-    "ApplicantProfile",
     "Program",
     "ProgramStep",
     "Faculty",

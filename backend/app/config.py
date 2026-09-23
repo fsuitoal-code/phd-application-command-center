@@ -41,8 +41,9 @@ class Settings(BaseSettings):
     # How many faculty a research pass may keep for one program. A department
     # directory runs to dozens of names -- adjuncts, emeriti, online-program
     # instructors -- and a list that long is not a shortlist, it is the
-    # directory again. The pass is asked for the N most relevant to the
-    # applicant's own interests, and the result is truncated to N regardless.
+    # directory again. The pass is asked for the N most central to the
+    # department's own research emphasis, and the result is truncated to N
+    # regardless.
     max_faculty_per_program: int = 3
 
     # No daily cap and no per-pass budget or turn ceiling: research passes run

@@ -203,8 +203,9 @@ FACULTY (the "faculty" field) -- a SHORTLIST, not the directory:
 Returning fewer is correct when fewer genuinely fit; returning the whole \
 directory is not. Anything past {max_faculty} is discarded, so spend the \
 effort choosing rather than listing.
-- Relevance is measured against this applicant's own interests:
-{interests}
+- Relevance follows the department's own emphasis: order by what the \
+department itself presents as its main research thrusts, and prefer faculty \
+whose current work is described in the most detail.
 - Include only research/tenure-track faculty who advise doctoral \
 students. Skip adjuncts, teaching-track faculty and professors of \
 practice, emeriti, visiting and affiliate staff, and anyone who appears \
@@ -297,34 +298,11 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1], strict=False)
 
 
-#: What the faculty shortlist is ranked against when the profile is still empty.
-#: Saying so plainly beats interpolating a blank: with nothing to rank by, the
-#: honest instruction is to fall back on the program's own emphasis rather than
-#: to pretend there is a preference to match.
-_NO_INTERESTS = (
-    "  (The applicant has not filled in their research interests yet. Rank by "
-    "what the department itself presents as its main research thrusts, and "
-    "prefer faculty whose work is described in the most detail.)"
-)
-
-
-def _interests_block(interests: str | None) -> str:
-    """The applicant's interests as indented prompt lines, or the fallback."""
-    text = (interests or "").strip()
-    if not text:
-        return _NO_INTERESTS
-    return "\n".join(f"  {line}" for line in text.splitlines() if line.strip())
-
-
-async def research_program(
-    query: str, official_url: str, interests: str | None = None
-) -> ResearchedProgram:
+async def research_program(query: str, official_url: str) -> ResearchedProgram:
     """Run the research pass and return structured, researched facts.
 
-    ``interests`` is the applicant's own research interests, used only to rank
-    the faculty shortlist -- the pass returns at most
-    ``settings.max_faculty_per_program`` people, so something has to decide
-    which ones. It changes no other field.
+    The faculty shortlist holds at most ``settings.max_faculty_per_program``
+    people, ranked by the department's own emphasis (see the prompt).
 
     Raises RuntimeError if the SDK/CLI is unavailable (Rule 1: no API-key
     fallback), or ValueError if the model returns unparseable output.
@@ -352,7 +330,6 @@ async def research_program(
         system_prompt=_SYSTEM_PROMPT.format(
             domain=domain,
             max_faculty=settings.max_faculty_per_program,
-            interests=_interests_block(interests),
         ),
         # Do NOT put WebFetch in allowed_tools: an allow-list entry auto-approves
         # the tool and SHADOWS can_use_tool, defeating the domain guard. Leaving

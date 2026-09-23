@@ -242,7 +242,7 @@ you cannot quote a sentence for it, leave it out or move it to "To ask".
 ALSO RETURN
 - "summary": 2-4 sentences, the bottom line. This one field is your own \
 judgement rather than a quote, so keep it to a read of what you found -- what \
-matters most about this person for this applicant, and the decisive open \
+matters most about this person for a prospective PhD applicant, and the decisive open \
 question. Never put a fact here that appears nowhere else.
 - "research_areas": one short line (under 120 chars) naming what they work on, \
 for the collapsed list row.
@@ -256,7 +256,7 @@ Output ONLY a single JSON object (no prose, no markdown fences):
 """
 
 
-def _prompt(profile, faculty, program) -> str:
+def _prompt(faculty, program) -> str:
     return (
         f"FACULTY MEMBER: {faculty.name}\n"
         f"AT: {program.university}"
@@ -265,17 +265,11 @@ def _prompt(profile, faculty, program) -> str:
         f"Known page: {faculty.homepage_url or '(none recorded — find it)'}\n"
         f"Recorded research areas: {faculty.research_areas or '(none recorded)'}\n"
         f"Program site: {program.portal_url or '(none recorded)'}\n\n"
-        "THE APPLICANT (for judging relevance and outreach hooks only — never "
-        "attribute any of this to the faculty member):\n"
-        f"Target degree: {profile.target_degree or '(unspecified)'}\n"
-        f"Research interests: {profile.research_interests or '(none given)'}\n"
-        f"Keywords: {profile.keywords or '(none)'}\n"
-        f"Background: {profile.background_summary or '(none given)'}\n\n"
         "Research this person and return the JSON object."
     )
 
 
-async def research_faculty(profile, faculty, program) -> FacultyDossier:
+async def research_faculty(faculty, program) -> FacultyDossier:
     """Run the dossier pass for one faculty member.
 
     Raises RuntimeError if the SDK/CLI is unavailable or the pass dies (Rule 1:
@@ -306,7 +300,7 @@ async def research_faculty(profile, faculty, program) -> FacultyDossier:
 
     final_text = ""
     try:
-        prompt = _prompt(profile, faculty, program)
+        prompt = _prompt(faculty, program)
         async for message in sdk_query(prompt=prompt, options=options):
             if isinstance(message, AssistantMessage):
                 parts = [b.text for b in message.content if isinstance(b, TextBlock)]

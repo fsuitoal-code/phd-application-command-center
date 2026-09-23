@@ -3,8 +3,8 @@
 Endpoints call the ``app.claude.*`` module functions by attribute so tests can
 monkeypatch them (no billed calls in tests).
 
-**research** requires no applicant profile. A dossier is about the faculty
-member -- what they work on, who is in their group, how students are funded.
+A dossier is about the faculty member -- what they work on, who is in their
+group, how students are funded.
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from app.claude import faculty_dossier as dossier_ai
 from app.config import ClaudeTask, settings
 from app.db import get_session
 from app.models import Faculty, FacultyNote, Program
-from app.routers.profile import get_or_create_profile
 from app.schemas import (
     FacultyNoteCreate,
     FacultyNoteOut,
@@ -47,11 +46,10 @@ async def research_faculty(
 ) -> Faculty:
     """Research one faculty member into a cited, sectioned profile."""
     faculty = _get_faculty(session, faculty_id)
-    profile = get_or_create_profile(session)
     program = session.get(Program, faculty.program_id)
 
     try:
-        found = await dossier_ai.research_faculty(profile, faculty, program)
+        found = await dossier_ai.research_faculty(faculty, program)
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=502, detail=f"Faculty research failed: {exc}"

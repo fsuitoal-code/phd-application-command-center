@@ -18,7 +18,6 @@ from app.routers import (
     docs,
     faculty,
     my_notes,
-    profile,
     programs,
 )
 
@@ -33,7 +32,6 @@ app.add_middleware(
 )
 
 app.include_router(programs.router)
-app.include_router(profile.router)
 app.include_router(faculty.router)
 app.include_router(docs.router)
 app.include_router(docs.program_router)

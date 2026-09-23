@@ -11,7 +11,7 @@ def test_research_pass_writes_notes_as_researched(client, monkeypatch):
     from app.claude.research import ResearchedNote, ResearchedProgram
 
 
-    async def fake_research(query, official_url, interests):
+    async def fake_research(query, official_url):
         return ResearchedProgram(
             university="Anywhere U",
             notes=[
@@ -54,7 +54,7 @@ def test_research_pass_with_no_notes_leaves_the_list_empty(client, monkeypatch):
     from app.claude.research import ResearchedProgram
 
 
-    async def fake_research(query, official_url, interests):
+    async def fake_research(query, official_url):
         return ResearchedProgram(university="Anywhere U")
 
     monkeypatch.setattr("app.claude.research.research_program", fake_research)

@@ -61,7 +61,7 @@ def test_research_pass_fills_missing_builtin_kinds_without_duplicating_found_one
     from app.claude.research import ResearchedProgram, ResearchedRequirement
 
 
-    async def fake_research(query, official_url, interests):
+    async def fake_research(query, official_url):
         return ResearchedProgram(
             university="Anywhere U",
             requirements=[
@@ -92,7 +92,7 @@ def test_research_pass_appends_non_builtin_kinds_after_the_six(client, monkeypat
     from app.claude.research import ResearchedProgram, ResearchedRequirement
 
 
-    async def fake_research(query, official_url, interests):
+    async def fake_research(query, official_url):
         return ResearchedProgram(
             university="Anywhere U",
             requirements=[

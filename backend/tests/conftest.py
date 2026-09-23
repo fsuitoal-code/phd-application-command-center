@@ -50,7 +50,6 @@ def _clean_tables() -> Iterator[None]:
 
     from app.db import SessionLocal
     from app.models import (
-        ApplicantProfile,
         Deadline,
         DocFile,
         DocType,
@@ -69,7 +68,6 @@ def _clean_tables() -> Iterator[None]:
             DocType,
             Faculty,
             Program,
-            ApplicantProfile,
         ):
             session.execute(delete(model))
         session.commit()

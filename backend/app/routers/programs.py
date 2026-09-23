@@ -307,21 +307,8 @@ async def research_program_endpoint(
     from app.claude.research import quote_fragment_url, research_program
     from app.config import ClaudeTask, settings
 
-    # The pass returns a shortlist of faculty rather than the directory, so
-    # something has to rank it: the applicant's own interests do.
-    from app.routers.profile import get_or_create_profile
-
-    profile = get_or_create_profile(session)
-    interests = "\n".join(
-        part
-        for part in (profile.research_interests, profile.keywords)
-        if part and part.strip()
-    )
-
     try:
-        found = await research_program(
-            payload.query, payload.official_url, interests
-        )
+        found = await research_program(payload.query, payload.official_url)
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"Research failed: {exc}") from exc
 
