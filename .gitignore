@@ -37,6 +37,8 @@ backups/
 
 # ── OS / editor ───────────────────────────────────────────
 .DS_Store
+# macOS stores a folder's custom icon in a hidden "Icon\r" file inside it.
+/Icon?
 Thumbs.db
 .idea/
 .vscode/

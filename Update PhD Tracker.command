@@ -62,6 +62,14 @@ main() {
        exit 1 ;;
   esac
 
+  # An update replaces a changed launcher with a new file, which drops its
+  # custom icon, so put the logo back. Cosmetic, so failures are ignored.
+  # (Same icons as setup-mac.sh gives them.)
+  local logo="$root/frontend/public/logo-512.png" item
+  for item in "$root" "$root/Open PhD Tracker.command" "$root/Update PhD Tracker.command"; do
+    set_icon "$logo" "$item"
+  done
+
   local version
   version="$(git rev-parse --short HEAD)"
   echo
@@ -76,6 +84,18 @@ alert() {
   osascript -e 'on run argv' \
             -e "display alert \"PhD Tracker\" message (item 1 of argv) as $1" \
             -e 'end run' "$2" >/dev/null 2>&1
+}
+
+set_icon() {
+  # set_icon <image> <path> -- gives a file or folder a custom Finder icon,
+  # through macOS's own NSWorkspace (reached with the built-in osascript).
+  osascript -l JavaScript -e '
+    ObjC.import("AppKit");
+    function run(argv) {
+      var image = $.NSImage.alloc.initWithContentsOfFile(argv[0]);
+      if (image.isNil()) return "no image";
+      return $.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, argv[1], 0) ? "ok" : "failed";
+    }' "$1" "$2" >/dev/null 2>&1
 }
 
 # One line, so bash has parsed the exit before main runs.
