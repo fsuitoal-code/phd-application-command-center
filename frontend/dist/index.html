@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/logo-192.png" />
+    <title>PhD Application Command Center</title>
+    <link
+      rel="preload"
+      href="/fonts/fraunces-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <script>
+      // Before first paint, or night mode flashes cream. Mirrors initial()
+      // in components/ThemeSwitch.tsx — keep the two in step.
+      (function () {
+        try {
+          var s = localStorage.getItem("phdtracker.theme");
+          if (s !== "light" && s !== "dark")
+            s = matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = s;
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-B-zjvuEk.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DjFm8zrf.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

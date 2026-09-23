@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* Fraunces — SIL Open Font License 1.1, which permits bundling. Self-hosted
+   rather than linked from Google Fonts: this app is local-first and should not
+   phone home on every launch, and should work offline. */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Every colour in the app resolves through one of these — a literal
+   `bg-neutral-50` or `text-red-600` in a component is a bug. The light values
+   below are the "Warm Editorial" palette; the dark block
+   further down is the night mode. Both sets define the same names, so no
+   component knows or cares which theme is running.
+
+   The three semantic families ARE the colour contract (see
+   components/badges.tsx), one meaning each:
+     danger  — overdue, or due within 14 days
+     warning — needs verification or review, or due within 45 days
+     success — confirmed, offer, or a completed step
+   Deadlines walk the scale as they approach: neutral, then amber, then red.
+   A further meaning does not get a colour; it gets a neutral.
+*/
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+
+  /* Surfaces */
+  --color-canvas: #faf9f5; /* page background — warm cream */
+  --color-surface: #fff; /* cards, inputs, a lifted row */
+  --color-surface-muted: #f3f0e9; /* panel heading bars, meter track */
+
+  /* Hairlines, lightest to heaviest */
+  --color-hairline-soft: #f0ece3; /* list dividers, panel footer */
+  --color-hairline: #e6e1d6; /* card and panel borders */
+  --color-hairline-firm: #d8d1c2; /* the unticked step's ring */
+  --color-hairline-strong: #b3aa98; /* hover and focus borders */
+
+  /* Ink, darkest to lightest */
+  --color-ink: #1c1a16; /* primary text */
+  --color-ink-muted: #4a443a;
+  --color-ink-soft: #5c564a;
+  --color-ink-subtle: #7b7465; /* secondary text */
+  --color-ink-faint: #a69e8d; /* placeholders, quiet affordances */
+  --color-ink-ghost: #cfc8b9; /* the drag grip at rest */
+
+  /* Accent — caramel. Primary buttons, the active tab and the rule above the
+     tab bar, drop targets, and keyboard focus rings only; it never marks
+     content. Dark enough that white text on
+     it clears WCAG AA (5.39:1); the terracotta it replaced managed only 3.90. */
+  --color-accent: #9a5b25;
+  --color-accent-hover: #834d1f;
+  --color-on-accent: #fff;
+
+  /* Semantic — the colour contract. Danger sits at hue 12 rather than the
+     stock red's 27 so "overdue" can never be mistaken for the accent. */
+  --color-danger: oklch(55% 0.223 12);
+  --color-danger-solid: oklch(61% 0.223 12);
+  --color-danger-muted: oklch(69% 0.175 10);
+
+  --color-warning: oklch(55.5% 0.163 48.998);
+  --color-warning-solid: oklch(76.9% 0.188 70.08);
+  --color-warning-surface: oklch(98.7% 0.022 95.277);
+
+  --color-success: oklch(52.7% 0.154 150.069);
+  --color-success-strong: oklch(44.8% 0.119 151.328);
+  --color-success-solid: oklch(72.3% 0.219 149.579);
+  --color-success-surface: oklch(98.2% 0.018 155.826);
+  --color-success-edge: oklch(92.5% 0.084 155.995);
+  --color-success-edge-hover: oklch(87.1% 0.15 154.449);
+}
+
+/* ── Night mode ───────────────────────────────────────────────────────────
+   Discord's greys: #36393f carries the cards, #2f3136 the page behind them.
+   The hairlines invert in role — structural borders go *darker* than the
+   surface, as Discord's do, while the interactive ones (firm, strong) go
+   lighter, because on a dark ground "lighter" is what reads as active. The
+   semantic three are lifted in lightness; a colour that works as text on
+   cream is unreadable on grey.
+
+   Set by <ThemeSwitch/>, and pre-set by the inline script in index.html so
+   the page never flashes cream before React boots.
+*/
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-canvas: #2f3136;
+  --color-surface: #36393f;
+  --color-surface-muted: #3c4046;
+
+  /* Hairlines */
+  --color-hairline-soft: #3b3e44;
+  --color-hairline: #292b2f;
+  --color-hairline-firm: #4f545c;
+  --color-hairline-strong: #72767d;
+
+  /* Ink */
+  --color-ink: #f2f3f5;
+  --color-ink-muted: #dcddde;
+  --color-ink-soft: #c9ccd1;
+  --color-ink-subtle: #a8adb3;
+  --color-ink-faint: #8a8f96;
+  --color-ink-ghost: #5d6169;
+
+  /* Accent — the day caramel is far too dark to read against #36393f (2.15:1),
+     so night gets a lighter one that carries DARK text instead: 7.90:1 for the
+     label, 5.92:1 for the colour itself against the page. */
+  --color-accent: #dda45f;
+  --color-accent-hover: #e5b176;
+  --color-on-accent: #1c1a16;
+
+  /* Semantic */
+  --color-danger: oklch(72% 0.17 12);
+  --color-danger-solid: oklch(65% 0.21 12);
+  --color-danger-muted: oklch(60% 0.16 10);
+
+  --color-warning: oklch(80% 0.14 72);
+  --color-warning-solid: oklch(76.9% 0.188 70.08);
+  --color-warning-surface: #3a2e1d;
+
+  --color-success: oklch(78% 0.15 150);
+  --color-success-strong: oklch(85% 0.13 150);
+  --color-success-solid: oklch(72.3% 0.219 149.579);
+  --color-success-surface: #1f3527;
+  --color-success-edge: #2e5139;
+  --color-success-edge-hover: #3d6a4a;
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+   One animation, for one job: the indeterminate bar under the header while a
+   Claude research pass runs. A pass takes minutes and writes nothing to the
+   database until it finishes, so the bar is the only proof the app is still
+   working — hence a moving mark rather than a static one. It sweeps rather
+   than fills because there is no progress to report, only liveness.
+
+   Every use pairs it with `motion-reduce:animate-none`.
+*/
+@theme {
+  --animate-research-sweep: research-sweep 1.8s ease-in-out infinite;
+
+  /* The mark is 25% of the track, so -100%/300% of its own width carries it
+     from fully off the left edge to fully off the right. */
+  @keyframes research-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+}

@@ -1,0 +1,43 @@
+# ── Python ────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / frontend ───────────────────────────────────────
+node_modules/
+frontend/.vite/
+*.tsbuildinfo
+*.local
+
+# ── Local working notes (kept on the dev machine, not published) ──
+CLAUDE.md
+CLAUDE.local.md
+docs/glossary.md
+docs/ui-themes.md
+docs/application-lifecycle-gaps.md
+docs/phase-8-cycle-schema.md
+
+# ── Data & secrets (NEVER commit — see docs/principles.md, Rule 2) ───
+# The SQLite DB and generated documents live OUTSIDE the repo,
+# in the OS app-data dir. These patterns are belt-and-suspenders
+# in case anything is ever written locally by mistake.
+*.sqlite
+*.sqlite3
+*.db
+data/
+backups/
+.env
+.env.*
+!.env.example
+
+# ── OS / editor ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

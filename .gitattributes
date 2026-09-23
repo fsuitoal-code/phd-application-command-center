@@ -1,0 +1,14 @@
+# Normalize line endings so Windows, macOS and Linux checkouts match byte for byte.
+# Text files are stored and checked out with LF line endings.
+* text=auto eol=lf
+
+# Explicitly binary (never touch).
+*.png binary
+*.jpg binary
+*.ico binary
+*.sqlite3 binary
+*.woff2 binary
+
+# Committed frontend build, served by FastAPI (backend/app/frontend.py).
+# Generated: kept out of diffs, rebuilt by Run Tests.cmd, never edited by hand.
+frontend/dist/** -diff linguist-generated=true
