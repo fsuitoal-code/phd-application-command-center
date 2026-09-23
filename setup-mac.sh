@@ -22,6 +22,8 @@ REPO_PATH="fsuitoal-code/phd-application-command-center"
 APP_DIR="$HOME/PhDTracker"
 DATA_DIR="$HOME/Library/Application Support/PhDTracker"
 LOG_DIR="$HOME/Library/Logs/PhDTracker"
+SHORTCUTS_DIR="$HOME/Desktop/PhD Tracker"
+SHORTCUTS_MARKER=".phdtracker-shortcuts"
 
 say()   { printf '%s\n' "$*"; }
 ok()    { printf '  ✓  %s\n' "$*"; }
@@ -84,14 +86,44 @@ build_icns() {
   iconutil -c icns "$set" -o "$2"
 }
 
+set_icon() {
+  # set_icon <image> <path> -- gives a file or folder a custom Finder icon,
+  # through macOS's own NSWorkspace (reached with the built-in osascript).
+  osascript -l JavaScript -e '
+    ObjC.import("AppKit");
+    function run(argv) {
+      var image = $.NSImage.alloc.initWithContentsOfFile(argv[0]);
+      if (image.isNil()) return "no image";
+      return $.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, argv[1], 0) ? "ok" : "failed";
+    }' "$1" "$2" 2>/dev/null | grep -qx ok
+}
+
+make_shortcuts_folder() {
+  # make_shortcuts_folder <icon.png> [icon.icns] -- the "PhD Tracker" folder on
+  # the Desktop, wearing the app icon and holding the Open and Update
+  # shortcuts. The app itself stays in ~/PhDTracker (a synced Desktop would
+  # break it). Only ever changes a folder this setup made: it holds a marker.
+  local png="$1" icns="${2:-}"
+  if [ -e "$SHORTCUTS_DIR" ] && [ ! -e "$SHORTCUTS_DIR/$SHORTCUTS_MARKER" ]; then
+    return 1
+  fi
+  mkdir -p "$SHORTCUTS_DIR" || return 1
+  printf 'Made by PhD Tracker setup. The app itself is in ~/PhDTracker.\n' \
+    >"$SHORTCUTS_DIR/$SHORTCUTS_MARKER" || return 1
+  make_shortcut "$SHORTCUTS_DIR" "Open PhD Tracker" "$APP_DIR/Open PhD Tracker.command" "$icns" || return 1
+  make_shortcut "$SHORTCUTS_DIR" "Update PhD Tracker" "$APP_DIR/Update PhD Tracker.command" "$icns" || return 1
+  set_icon "$png" "$SHORTCUTS_DIR" || printf 'Could not set the folder icon.\n' >>"$LOG"
+  return 0
+}
+
 make_shortcut() {
-  # make_shortcut <name> <launcher.command> [icon.icns] -- a small app on the
-  # Desktop that opens the launcher in Terminal. It is an app rather than an
-  # alias so it can carry its own icon, which updates to the launcher (a
-  # replaced file) would otherwise strip. Only ever replaces a shortcut this
-  # setup made, recognised by its bundle identifier.
-  local name="$1" target="$2" icns="${3:-}"
-  local app="$HOME/Desktop/$name.app"
+  # make_shortcut <dir> <name> <launcher.command> [icon.icns] -- a small app
+  # that opens the launcher in Terminal. It is an app rather than an alias so
+  # it can carry its own icon, which updates to the launcher (a replaced file)
+  # would otherwise strip. Only ever replaces a shortcut this setup made,
+  # recognised by its bundle identifier.
+  local name="$2" target="$3" icns="${4:-}"
+  local app="$1/$name.app"
   local id
   id="local.phdtracker.$(printf '%s' "$name" | tr 'A-Z ' 'a-z-')"
   if [ -e "$app" ] && ! grep -q "<string>$id</string>" "$app/Contents/Info.plist" 2>/dev/null; then
@@ -258,23 +290,23 @@ main() {
     ok "Created your database"
   fi
 
-  # ── 6. Desktop shortcuts ─────────────────────────────────────────────────
+  # ── 6. The PhD Tracker folder on the Desktop ─────────────────────────────
   # The first write to the Desktop makes macOS ask whether Terminal may access
   # it, so say so first.
-  doing "Adding shortcuts to your Desktop (if macOS asks about your Desktop, click Allow)"
+  doing "Adding a PhD Tracker folder to your Desktop (if macOS asks about your Desktop, click Allow)"
+  local logo="$APP_DIR/frontend/public/logo-512.png"
   local tmp icns="" shortcuts=0
   tmp="$(mktemp -d 2>/dev/null)"
-  if [ -n "$tmp" ] && quietly build_icns "$APP_DIR/frontend/public/logo-512.png" "$tmp/AppIcon.icns"; then
+  if [ -n "$tmp" ] && quietly build_icns "$logo" "$tmp/AppIcon.icns"; then
     icns="$tmp/AppIcon.icns"
   else
     printf 'Could not build the shortcut icon; the shortcuts get the default one.\n' >>"$LOG"
   fi
-  if make_shortcut "Open PhD Tracker" "$APP_DIR/Open PhD Tracker.command" "$icns" \
-     && make_shortcut "Update PhD Tracker" "$APP_DIR/Update PhD Tracker.command" "$icns"; then
-    ok "Shortcuts on your Desktop"
+  if make_shortcuts_folder "$logo" "$icns"; then
+    ok "PhD Tracker folder on your Desktop"
     shortcuts=1
   else
-    warn "Couldn't add the Desktop shortcuts. The Open and Update launchers are in the PhDTracker folder instead."
+    warn "Couldn't add the PhD Tracker folder to your Desktop. The Open and Update launchers are in the PhDTracker folder in your home folder instead."
   fi
   [ -n "$tmp" ] && rm -rf "$tmp"
 
@@ -306,8 +338,9 @@ main() {
   # ── Done ─────────────────────────────────────────────────────────────────
   say ""
   if [ "$shortcuts" -eq 1 ]; then
-    say "All set. Use the two new icons on your Desktop:"
+    say "All set. In the PhD Tracker folder on your Desktop (it just opened):"
     say "  \"Open PhD Tracker\" starts it, and \"Update PhD Tracker\" gets new versions."
+    open "$SHORTCUTS_DIR"
   else
     say "All set. PhD Tracker is in the folder that just opened:"
     say "  double-click \"Open PhD Tracker\" to start it, and"
